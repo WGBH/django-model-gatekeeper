@@ -139,19 +139,19 @@ What's happening behind the scenes:
 
 How does it do that?
 
-    Rule 0: Only objects that COULD be in play can play
+* Rule 0: Only objects that COULD be in play can play
     
-    Rule 1: if your date is in the future, then you can't play
+* Rule 1: if your date is in the future, then you can't play
     
-    Rule 2: pick from the ones with "date set" that's in the past who have been published (i.e., `live_as_of` is not None)
+* Rule 2: pick from the ones with "date set" that's in the past who have been published (i.e., `live_as_of` is not None)
     
-    Rule 3: Barring that - pick the most-recently modified page with `publish_status` = 1
+* Rule 3: Barring that - pick the most-recently modified page with `publish_status` = 1
             (this is because it IS possible for a "always on" page to have never gone through
             the publish step with a publish date - it's just FORCED TO BE ON)
     
-    Rule 4: Barring THAT - pick the most-recently modified page with `publish_status` != -1 that has `default_live` = True.
+* Rule 4: Barring THAT - pick the most-recently modified page with `publish_status` != -1 that has `default_live` = True.
             
-    Rule 5: Barring THAT - None (and 404).
+* Rule 5: Barring THAT - None (and 404).
 
 Note Rule #4 --- this is where the `default_live` field comes into play.   You can define a model instance with `default_live` = True.  This item will be return if no other instance passes the rules.  Basically it's can be a generic "fall back" for the model so that the public page ALWAYS returns something.   Handy!
 
@@ -185,6 +185,7 @@ For convenience in the listing page of the Admin, five Admin actions have been d
 4. "CONDITIONALLY online using `live_as_of` date": this sets `publish_status = 0` and keeps `live_as_of` to whatever it was before.   You'd use this if you wanted to change a PERMANENTLY LIVE or COMPLETELY OFFLINE setting;
 5. "Take item COMPLETELY OFFLINE": this sets `publish_status` = -1 --- the item disappears from the site entirely.
 
+# Features still to be integrated
 
 ## Parental Gatekeeping
 
