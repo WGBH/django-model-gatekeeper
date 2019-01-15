@@ -15,10 +15,18 @@ Gatekeeper is a simple Django app that enables "Set it and Forget it!" publishin
     ]
     ```
 
-## Gatekeeping Models
+# Gatekeeping Models
 
-For models where you want to manage when each instance is available to the public, all you need to do is subclass the 
-`GatekeeperAbstractModel` abstract class, e.g.:
+The main use for gatekeeping is where you have a model with many instances, but you only want some to be "live" on the site.
+
+A good example is a generic "Article" model:
+
+    * Some articles are ready-to-go and you want them live to the public;
+    * Other articles are still being worked on - you want to be able to preview them, but not take them live JUST yet;
+    * Some articles might be pulled (and re-published later)
+    * Some articles are ready to be published, but you want them to only go live at a later date.
+    
+Here, all you need to do is subclass the `GatekeeperAbstractModel` abstract class, e.g.:
 
 ```
 from django.db import models
@@ -34,12 +42,12 @@ The superclass creates two fields:
 
 2. `publish_status` (controlled vocabulary, default = None) - this has 4 possible values:
 
-* None = has never been published
-* 0 = "use live_as_of" date to determine if the object is available to the public
-* 1 = "always on" - hard-wired to be always available to the public
-* -1 = "permanently off" - hard-wired to NEVER be available to the public
+    * None = has never been published
+    * 0 = "use live_as_of" date to determine if the object is available to the public
+    * 1 = "always on" - hard-wired to be always available to the public
+    * -1 = "permanently off" - hard-wired to NEVER be available to the public
 
-You set the `publish_status` and `live_as_of` values through the Admin
+You set the `publish_status` and `live_as_of` values through the Admin.
 
 ## View Code
 
@@ -73,7 +81,47 @@ What's happening behind the scenes:
     
 2. In the DetailView, the gatekeeper follows the same rules, but will throw a 404 error, if the user is not logged into the Admin and the request object isn't "live" yet.
 
-## Showing Model Instances Serially
+## Using the Gatekeeper with querysets in your own code
+
+Say there's a section on your homepage that gives a list of the three most recent articles.  If you just create a queryset along the lines of:
+
+```most_recent_articles = Article.objects.order_by(-date_created)[:3]```
+
+it will include articles regardless of what their gatekeeping situation is.
+
+So there are two helper functions to apply the gatekeeping rules to any queryset you generate.
+
+### `view_gatekeeper`
+
+This takes a queryset, applies the rules and returns a filtered queryset.
+
+```
+from gatekeeper.view_utils import view_gatekeeper
+...
+recent_articles = Article.objects.order_by('-date_created')
+recent_articles = view_gatekeeper(recent_articles, is_auth)
+...
+```
+
+The `is_auth` parameter allows you to filter based on whether the user making the request is logged in or not.  If they are logged in, then objects that aren't live but still available to the Admin will "pass" through the gatekeeper.   For this, you'd set `is_auth = self.request.user.is_authenticated`.   (About the only time I can see doing this is if you want to see how a particular non-live object will "play" in a generated content feature.)
+
+I've found that I almost NEVER need that.  Typically for constructed lists of object you want to only see what IS live, so in almost every case where I've used `view_gatekeeper`, I've set `is_auth = False`.   You can still "see" all the non-live objects through their detail page when you're logged into the Admin. 
+
+### `object_gatekeeper`
+
+This takes a single object instance and returns True or False depending on whether it "passes" the gate.
+
+```
+from gatekeeper.view_utils import object_gatekeeper
+...
+my_article = Article.objects.first()
+am_i_avaiable = object_gatekeeper(my_article, is_auth)
+...
+```
+
+Generally, you don't need this method since the model property `available_to_public` already exists.   The one case where I've needed it was when I had a list come from an outside source where there was an overlap with objects in one of my models.   I wanted to show all the external object, and construct links to the object that overlapped but ONLY if they were live.
+
+# Gatekeeping Model Instances Serially
 
 In some situations, you only want a single instance of model to be "live" on the site at a time.   You can use the Gatekeeper to do this.   
 
@@ -107,6 +155,8 @@ class Homepage(GatekeeperSerialAbstractModel):
 
 As before, the`GatekeeperSerialAbstractModel` creates the `live_as_of` and `publish_status` fields.   It also creates a `default_live` field.   
 
+## View Code 
+
 The View code becomes:
 
 ```
@@ -119,7 +169,9 @@ class HomepageDetailView(GatekeeperSerialMixin, DetailView):
     context_object_name = 'homepage'
 ```
 
-For the `urls.py` there's a slight twist:
+## Setting up `urls.py`
+
+In the `urls.py` there's a slight twist.  You'll want two entries.
 
 ```
 from django.urls import path
@@ -139,7 +191,7 @@ What's happening behind the scenes:
 
 How does it do that?
 
-* Rule 0: Only objects that COULD be in play can play
+* Rule 0: Only objects that COULD be in play can play (i.e., `publish_status` cannot be -1)
     
 * Rule 1: if your date is in the future, then you can't play
     
@@ -155,11 +207,11 @@ How does it do that?
 
 Note Rule #4 --- this is where the `default_live` field comes into play.   You can define a model instance with `default_live` = True.  This item will be return if no other instance passes the rules.  Basically it's can be a generic "fall back" for the model so that the public page ALWAYS returns something.   Handy!
 
-## The Admin Interface
+# The Admin Interface
 
 Gatekeeper alters the default Admin for models that use it.
 
-### List Display
+## List Display
 
 For the basic gatekeeper, two fields are added to the `list_display` (they'll appear after anything set in the ModelAdmin):
 
@@ -168,14 +220,14 @@ For the basic gatekeeper, two fields are added to the `list_display` (they'll ap
 
 For the "serial" gatekeeper, there are also two fields:
 
-1. `show_public_status` as before
+1. `show_publish_status` as before
 2. `is_live` - returns True/False to show which item is the one that will appear on the live site.
 
-### Fieldsets
+## Fieldsets
 
 All Gatekeeper-related fields are displayed on the model Admin edit page in a fieldset called "Gatekeeper".
 
-### Admin actions
+## Admin actions
 
 For convenience in the listing page of the Admin, five Admin actions have been defined:
 
@@ -188,6 +240,12 @@ For convenience in the listing page of the Admin, five Admin actions have been d
 # Testing
 
 There are unit tests for the `can_this_object_page_be_shown`, `can_this_object_page_be_shown_to_public`, and `get_appropriate_object_from_model` utility methods.   Run `python runtests.py`.
+
+# Troubleshooting
+
+## _I have a page that's not live but I can still see it!_
+
+Are you sure you're not logged into the Admin?   If you are, you can still "see" pages that aren't live.
 
 # Features still to be integrated
 
