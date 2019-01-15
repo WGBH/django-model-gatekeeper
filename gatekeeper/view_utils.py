@@ -11,8 +11,7 @@ def view_gatekeeper(qs, is_auth, ignore_standalone=False):
     
     This DOES take Adminsitrative login into account (if is_auth == True), in which case the queryset is passed 
     through unchecked.
-    
-    publish_status
+
     RAD - 2018-Aug-23
     """
     if not is_auth:
@@ -27,6 +26,9 @@ def view_gatekeeper(qs, is_auth, ignore_standalone=False):
     return qs
     
 def object_gatekeeper(obj, is_auth, ignore_standalone=False):
+    """
+    It's OK to use available_to_public here because the underlying logic is identical.
+    """
     if not obj:
         return False
     if is_auth:

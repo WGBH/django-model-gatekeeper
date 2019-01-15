@@ -60,7 +60,7 @@ def can_object_page_be_shown(user, this_object, including_parents=False):
     """
     try:
         if user.is_staff: # admin users can always see pages
-            if this_object.publish_status >= 0 or this_object.treat_as_standalone == 1:
+            if this_object.publish_status >= 0: # or this_object.treat_as_standalone == 1:
                 return True # I can see everything except specifically turned-off objects because I'm an admin
     except:
         pass # I am not logged in - continue
@@ -158,28 +158,3 @@ def get_appropriate_object_from_model(this_model):
 
     # Nothing is avaialble - this will likely result in a 404 page being returned.
     return None
-
-
-# TEST CODE FROM SHELL
-#from pbsmmapi.abstract.gatekeeper import can_object_page_be_shown
-#from pbsmmapi.show.models import PBSMMShow
-#ss = PBSMMShow.objects.all()
-#from django.contrib.auth.models import User
-#user = User.objects.first()
-#import pytz
-#from datetime import datetime
-#future = datetime(2018, 9, 1, 0, 0, 0, 0, pytz.utc)
-#past = datetime(2018, 5, 1, 0, 0, 0, 0, pytz.utc)
-#now = datetime.now(pytz.utc)
-
-#for s in ss:
-#    s.live_as_of = past
-    
-#ss[10].live_as_of = None
-#ss[11].live_as_of = future
-#ss[7].publish_status = 1
-#ss[6].publish_status = -1
-
-#for s in ss:
-#   can_object_page_be_shown(None, s)
-#   can_object_page_be_shown(user, s)

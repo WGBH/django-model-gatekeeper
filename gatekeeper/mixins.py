@@ -20,7 +20,7 @@ See the documentation in gatekeeper.py for details.
 class GatekeeperAuthenticationMixin(ContextMixin):
     """
     These are done for all the Listing and Detail pages...
-    
+    It just creates an extra variable in the context to say whether the user is logged into the Admin or not.
     Aren't mixins just freaking cool?
     """
     def get_context_data(self, **kwargs):
@@ -31,11 +31,6 @@ class GatekeeperAuthenticationMixin(ContextMixin):
 class GatekeeperListMixin(MultipleObjectMixin, GatekeeperAuthenticationMixin):
     """
     This is for Listing views that apply to all object ListView classes.
-    
-    This handles self-filtering.  Some object types ALSO require ancestral "back filtering" 
-        (e.g., Episodes must have a Season that is available;  Specials and Seasons require
-        their Show is available, etc.).   Those filters are applied AFTER these, and are 
-        called from the specific ListView class.
     """
     def get_queryset(self):
         qs = super(GatekeeperListMixin, self).get_queryset()
@@ -58,31 +53,28 @@ class GatekeeperDetailMixin(SingleObjectMixin, GatekeeperAuthenticationMixin):
     """
     This is for detail views that apply to all object DetailView classes.
     
-    This handles self-filtering.  Some object types ALSO require ancestral "back filtering"
-    (e.g., an Episode must have an availble Season; a Special must have an available Show).
-    Those additional filters are applied AFTER these, and are called from the special DetailView class.
-    
-    WE CANNOT USE "is_publicly_available" as a quick, "simple" workaround because you have to be able
-    to reliably send the self.request.user to the gatekeeper (is_publicly_available is really only supposed
+    WE CANNOT USE the "available_to_public" property as a quick, "simple" workaround because you have to be able
+    to reliably send the self.request.user to the gatekeeper (available_to_public is really only supposed
     to be used as a test within TEMPLATES, i.e., AFTER the gatekeeper has done its job!)
     """
     def get_object(self, queryset=None):
         obj = super(GatekeeperDetailMixin, self).get_object(queryset=queryset)
         user = self.request.user
-        #print "USER: ", user, 'IS AUTHENTICATED ', user.is_authenticated
-        try:
-            if obj.treat_as_standalone == 0:
-                #print "MIXIN CHECK PARENT: ", can_object_page_be_shown(user, obj, including_parents=True)
-                if can_object_page_be_shown(user, obj, including_parents=True):
-                    return obj
-            else:
-                #print "MIXIN STANDALONE: ", can_object_page_be_shown(user, obj, including_parents=False)
-                if can_object_page_be_shown(user, obj, including_parents=False):
-                    return obj
-        except:
+        
+        #### This code needs to be re-integrated if parental object gatekeeping is a feature we want to have.
+        #try:
+        #    if obj.treat_as_standalone == 0:
+        #        #print "MIXIN CHECK PARENT: ", can_object_page_be_shown(user, obj, including_parents=True)
+        #        if can_object_page_be_shown(user, obj, including_parents=True):
+        #            return obj
+        #    else:
+        #        #print "MIXIN STANDALONE: ", can_object_page_be_shown(user, obj, including_parents=False)
+        #        if can_object_page_be_shown(user, obj, including_parents=False):
+        #            return obj
+        #except:
             #print "MIXIN HAS NO STANDALONE: ", can_object_page_be_shown(user, obj, including_parents=False)
-            if can_object_page_be_shown(user, obj, including_parents=False):
-                return obj
+        if can_object_page_be_shown(user, obj, including_parents=False):
+            return obj
 
         raise Http404()
             
@@ -98,7 +90,12 @@ class GatekeeperSerialMixin(SingleObjectMixin, GatekeeperAuthenticationMixin):
     """
         
     def get_object(self, queryset=None):
-        #obj = super(GatekeeperSerialMixin, self).get_object(queryset=queryset)
+        """
+        Note that we do NOT call super() here!
+        If you DO then the request for the "generic" page will FAIL because no PK or Slug is sent with the request!
+        It's BECAUSE this get_object() looks for "the" appropriate object, that we don't want the SingleObjectMixin's
+        get_object() to run AT ALL.
+        """
 
         if self.kwargs.get('pk') and self.request.user.is_staff:
             result = get_object_or_404(self.model, id=self.kwargs.get('pk'))

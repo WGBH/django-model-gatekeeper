@@ -14,17 +14,14 @@ There are two different types of models that use gatekeeping:
     1. GatekeeperAbstractModel:
         Models that have individual objects, where each one is handled separately.
         e.g., the objects in an Article model may be live, might be waiting for their
-            live_as_of date to happen, might be in preparation, or might be turned off.
-            
-        For these models,  is_serial = False (default)
+        live_as_of date to happen, might be in preparation, or might be turned off.
             
     2. GatekeeperSerialAbstractModel:
         Models where only ONE object is meant to be live at any time.
         e.g., a Homepage model might have several "queued up" to go live at any given time.
         
-        For these models,  is_serial = True, and there is an extra field for default_live
-            which is used if the logic doesn't return any particular object.
-        
+        For these models there is an extra field for default_live
+        which is used if the logic doesn't return any particular object.
 """
 
 class GatekeeperAbstractModel(models.Model):
@@ -47,11 +44,9 @@ class GatekeeperAbstractModel(models.Model):
         null = True, blank = True,
         help_text = 'You can Set this to a future date/time to schedule availability.'
     )
-    ### this determined the behavior of the gatekeeping
-    is_serial = False
     
     ### This sets up the ability for gatekeeping hierarchies.
-    parental_model_field = None
+    #parental_model_field = None
     
     def __available_to_public(self):
         """
@@ -74,11 +69,14 @@ class GatekeeperAbstractModel(models.Model):
         abstract = True
 
 class GatekeeperSerialAbstractModel(GatekeeperAbstractModel):
+    """
+    This builds on the previous abstract model.
+    It added the "default_live" field to allow one object to be a "fall back" in case all the other objects fail to pass the gate.
+    """
     default_live = models.BooleanField (
         _('Default as Live'), default = False,
         help_text = "If everything else fails, then return this as the live home page"
     )
-    is_serial = True
     
     class Meta:
         abstract = True
