@@ -54,6 +54,19 @@ class GatekeeperAbstractModel(models.Model):
     parental_model_field = None
     
     def __available_to_public(self):
+        """
+        THIS IS ONLY TO BE USED IN TEMPLATES.
+        It RELIES on the gatekeeper - so using it in front of the gatekeeper is counter-productive.
+        (I made this mistake, thinking I was taking a shortcut.   It cost me a day's work.   Don't be like me.)
+        
+        RAD 4 Oct 2018
+        """
+        ### This needs to be integrated if standalone object support is put back in the package.
+        #try:
+        #    if self.treat_as_standalone == 0:
+        #        return can_object_page_be_shown(None, self, including_parents = True)
+        #except:
+        #    pass
         return can_object_page_be_shown_to_pubilc(self)
     available_to_public = property(__available_to_public)
     
