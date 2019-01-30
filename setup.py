@@ -8,14 +8,14 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='django-gatekeeper',
+    name='django-model-gatekeeper',
     version='0.1',
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     license='MIT License, see LICENSE',
     description="Django abstract classes to allow 'Set it and Forget it!' behavior for models.",
     long_description=README,
-    url='http://github.com/wgbh/django-gatekeeper/',
+    url='http://github.com/wgbh/django-model-gatekeeper/',
     author='Bob Donahue',
     author_email='bob_donahue@wgbh.org',
     install_requires=['pytz',],
