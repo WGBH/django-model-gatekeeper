@@ -59,7 +59,6 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
         
     def get_actions(self, request):
         actions = super(GatekeeperGenericAdmin, self).get_actions(request)
-        del actions['delete_selected']
         return actions
         
     ### Custom methods
