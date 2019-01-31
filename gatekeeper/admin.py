@@ -5,12 +5,9 @@ from collections import OrderedDict
 from datetime import datetime
 from .utils import get_appropriate_object_from_model
 
-### There's probably a better way to do this, but honestly I don't expect this to change much, and the user can always override it.
 BASIC_FIELDS  = ((('publish_status', 'show_publish_status', 'available_to_public'), 'live_as_of', ))
 SERIAL_FIELDS = ((('publish_status', 'show_publish_status', 'is_live'), 'live_as_of', 'default_live'))
 
-##############################################################################################
-### HELPER METHODS - nothing to see here really
 def reset_fieldsets(orig, new):
     """
     This is just to re-write the fieldsets parameters with the gatekeeper section.
@@ -29,7 +26,6 @@ def is_in_the_future(dt):
     if dt > datetime.now(pytz.utc):
         return True
     return False
-##############################################################################################
 
 class GatekeeperGenericAdmin(admin.ModelAdmin):
     """
@@ -38,9 +34,6 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
     """
     actions = ['set_to_default', 'permanently_online', 'take_online_now', 'conditionally_online', 'take_offline', ]
     
-    ############################################
-    #### Things that alter the child ModelAdmin
-    ############################################
     def get_fieldsets(self, request, obj=None):
         """
         Add a section to the fieldsets for the fields used by the gatekeeper.
@@ -65,15 +58,11 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
         return self.readonly_fields + ('show_publish_status','available_to_public')
         
     def get_actions(self, request):
-        """
-        See "Control Functions" - below
-        """
-        actions = super(GatekeeperGenericAdmin, self).get_actions(request)            
+        actions = super(GatekeeperGenericAdmin, self).get_actions(request)
+        del actions['delete_selected']
         return actions
         
-    ############################################
     ### Custom methods
-    ############################################
     def show_publish_status(self, obj):
         """
         This creates an HTML string showing a object's gatekeeper status in a user-friendly way.
@@ -94,12 +83,8 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
         return "???"
     show_publish_status.short_description = 'Pub. Status'
     
-    ############################################
     ### Control functions
-    ############################################
-    # These five convenience operations are added to the admin listing page 
-    # This allows Admins to make several changes at once without having to hand-edit objects one at a time.
-    ############################################
+    # These five operations are added to the admin listing page 
     def set_to_default(self, request, queryset):
         for item in queryset:
             item.publish_status = 0
@@ -132,6 +117,8 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
             item.publish_status = -1
             item.save() 
     take_offline.short_description = 'Take item COMPLETELY OFFLINE'
+    
+    ### Custom methods
 
     class Meta:
         abstract = True
@@ -141,10 +128,6 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
     This superclass extends the previous one by adding the default_live field, and adds an is_live() method
     to allow the user to see which object in a model is determined to be the "live" page.
     """
-    
-    ############################################
-    #### Things that alter the child ModelAdmin
-    ############################################
     def get_fieldsets(self, request, obj=None):
         """
         The default will be to add show_publish_status and is_live to the list_display.
@@ -167,11 +150,9 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
         """
         Add these to the readonly_fields so that they can be used within the admin.
         """
-        return self.readonly_fields + ('is_live',)
+        return self.readonly_fields + ('is_live','show_publish_status')
         
-    ############################################
     ### Custom methods
-    ############################################
     def is_live(self, obj):
         """
         This shows WHICH object will be the live object.
@@ -184,3 +165,23 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
             return True
         return False
         
+    ### Custom methods
+    def show_publish_status(self, obj):
+        """
+        This creates an HTML string showing a object's gatekeeper status in a user-friendly way.
+        """
+        if obj.publish_status > 0:
+            return mark_safe("<span style=\"color: #0c0;\"><b>ALWAYS</b></span> Available")
+        elif obj.publish_status < 0:
+            return mark_safe("<span style=\"color: #c00;\"><B>NEVER</b></span> Available")
+        else: # it EQUALS zero
+            if obj.live_as_of is None:
+                return "Never Published"
+            else:
+                dstr = obj.live_as_of.strftime("%x")
+                if is_in_the_future(obj.live_as_of):
+                    return mark_safe("<b>Goes LIVE: %s</b>"% dstr)
+                else:
+                    return mark_safe("<B>LIVE</B> <span style=\"color: #999;\">as of: %s</style>" % dstr)
+        return "???"
+    show_publish_status.short_description = 'Pub. Status'
