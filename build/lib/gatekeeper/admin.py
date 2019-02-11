@@ -55,7 +55,9 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
         """
         Add these to the readonly_fields so that they can be used within the admin.
         """
-        return self.readonly_fields + ('show_publish_status','available_to_public')
+        before = list(self.readonly_fields)
+        mine = ['show_publish_status','available_to_public']
+        return before + mine
         
     def get_actions(self, request):
         actions = super(GatekeeperGenericAdmin, self).get_actions(request)
