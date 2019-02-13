@@ -14,9 +14,10 @@ def reset_fieldsets(orig, new):
     For some reason doing it any other way throws an error...   Oh well.
     """
     fs = []
-    for f in orig:
-        fs.append(f)
-    fs.append(new)
+    if orig:
+        for f in orig:
+            fs.append(f)
+            fs.append(new)
     return fs
     
 def is_in_the_future(dt):
@@ -145,6 +146,8 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
         x = self.list_display
         if x is None:
             x = ['pk',]
+        else:
+            x = list(x)
         return x + ['show_publish_status', 'is_live', 'default_live']
         
     def get_readonly_fields(self, request, obj=None):
