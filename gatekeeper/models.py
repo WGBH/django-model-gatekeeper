@@ -75,7 +75,7 @@ class GatekeeperSerialAbstractModel(GatekeeperAbstractModel):
     """
     default_live = models.BooleanField (
         _('Default as Live'), default = False,
-        help_text = "If everything else fails, then return this as the live home page"
+        help_text = "If everything else fails, then return this as the live instance"
     )
     
     class Meta:
