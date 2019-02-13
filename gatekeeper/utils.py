@@ -157,10 +157,10 @@ def get_appropriate_object_from_model(object_set, is_queryset=False):
     try:
         qs2 = qs.order_by('-date_modified').first()
     except:
-        pass
-        
-    if qs2:
-        return qs2
+        qs2 = qs.first()
+    else:     
+        if qs2:
+            return qs2
         
     # Send the most-recent "default"
     try:
