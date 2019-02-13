@@ -110,7 +110,7 @@ def can_object_page_be_shown(user, this_object, including_parents=False):
 def can_object_page_be_shown_to_pubilc(this_object):
     return can_object_page_be_shown(None, this_object, including_parents=False)
 
-def get_appropriate_object_from_model(this_model):
+def get_appropriate_object_from_model(object_set, is_queryset=False):
     """
     Tools:
         - publish_status = {1: always on, 0: conditionally on, -1: always off, NULL never published}
@@ -128,12 +128,19 @@ def get_appropriate_object_from_model(this_model):
             default_live = True.
         Rule 5: Barring THAT - return the Page that is the default home page (is that even possible)?
             or None
+            
+    RAD 13-Feb-2019
+        I've added an optional arg that allows processing of already-created querysets.
+        That way you can have a model that groups instances by a foreign key, and then use the gatekeeper on clump.
     
     """
     now = datetime.now(pytz.utc)
 
     # anything that is not available to anyone is ignored
-    qs = this_model.objects.exclude(publish_status=-1) 
+    if is_queryset:
+        qs = object_set.exclue(publish_status=-1)
+    else:
+        qs = object_set.objects.exclude(publish_status=-1) 
     qs = qs.exclude(live_as_of__gt=now)
     qs1 = qs.exclude(live_as_of__isnull=True) # For some reason this does NOT WORK
     qs1 = qs.order_by('-live_as_of', '-publish_status')
