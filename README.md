@@ -183,6 +183,8 @@ urlpatterns = (
 )
 ```
 
+## How it works
+
 What's happening behind the scenes:
 
 1. If you are logged into the Admin you can view any Homepage instance (with the `/homepage/<pk>/` URL).
@@ -206,6 +208,19 @@ How does it do that?
 * Rule 5: Barring THAT - None (and 404).
 
 Note Rule #4 --- this is where the `default_live` field comes into play.   You can define a model instance with `default_live` = True.  This item will be return if no other instance passes the rules.  Basically it's can be a generic "fall back" for the model so that the public page ALWAYS returns something.   Handy!
+
+##  `utils.py` - helper functions
+
+In case you need it, there's a helper function, `get_appropriate_object_from_model` that will return the "live" instance of any serial gatekeeper model:
+
+```
+get_appropriate_object_from_model(object_set, is_queryset=False)
+```
+
+where object_set is EITHER:
+
+1. a Model that has subclassed `GatekeeperSerialAbstractModel` (and `is_queryset=False`), OR;
+2. a query FROM a Model that has subclassed `GatekeeperSerialAbstractModel` (where you send `is_queryset=True`).
 
 # The Admin Interface
 
