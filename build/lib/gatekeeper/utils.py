@@ -110,7 +110,7 @@ def can_object_page_be_shown(user, this_object, including_parents=False):
 def can_object_page_be_shown_to_pubilc(this_object):
     return can_object_page_be_shown(None, this_object, including_parents=False)
 
-def get_appropriate_object_from_model(this_model):
+def get_appropriate_object_from_model(object_set, is_queryset=False):
     """
     Tools:
         - publish_status = {1: always on, 0: conditionally on, -1: always off, NULL never published}
@@ -128,30 +128,35 @@ def get_appropriate_object_from_model(this_model):
             default_live = True.
         Rule 5: Barring THAT - return the Page that is the default home page (is that even possible)?
             or None
+            
+    RAD 13-Feb-2019
+        I've added an optional arg that allows processing of already-created querysets.
+        That way you can have a model that groups instances by a foreign key, and then use the gatekeeper on clump.
     
     """
     now = datetime.now(pytz.utc)
 
+    # Use the whole model by default.
+    # Otherwise if is_queryset is True, treat it as a queryset.
+    if is_queryset:
+        qs = object_set.exclude(publish_status=-1)
+    else:
+        qs = object_set.objects.exclude(publish_status=-1) 
+
     # anything that is not available to anyone is ignored
-    qs = this_model.objects.exclude(publish_status=-1) 
     qs = qs.exclude(live_as_of__gt=now)
-    qs1 = qs.exclude(live_as_of__isnull=True) # For some reason this does NOT WORK
-    qs1 = qs.order_by('-live_as_of', '-publish_status')
-    ok = []
-    for x in qs1:
-        if x.live_as_of is not None:
-            ok.append(x)
-    # If any are left - return the firs tone
-    if len(ok) > 0:
-        return ok[0]
     
-    # Send the most recently updated permanent on
-    qs2 = qs.exclude(publish_status=0)
+    # Send most-recent live_as_of
+    qs1 = qs.exclude(live_as_of__isnull=True) # For some reason this does NOT WORK
+    qs1 = qs.filter(publish_status=0).order_by('-live_as_of').first()
+    if qs1:
+        return qs1
+    
+    # Send the most recently updated permanent on    
     try:
-        qs2 = qs.order_by('-date_modified').first()
+        qs2 = qs.filter(publish_status=1).order_by('-date_modified').first()
     except:
-        pass
-        
+        qs2 = qs.filter(publish_status=1).first()
     if qs2:
         return qs2
         
@@ -160,9 +165,8 @@ def get_appropriate_object_from_model(this_model):
         qs3 = qs.filter(default_live=True).order_by('-date_modified').first()
     except:
         qs3 = qs.filter(default_live=True).first()
-    else:
-        if qs3:
-            return qs3
+    if qs3:
+        return qs3
 
     # Nothing is avaialble - this will likely result in a 404 page being returned.
     return None

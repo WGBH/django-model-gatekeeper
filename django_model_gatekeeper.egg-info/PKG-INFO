@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: django-model-gatekeeper
-Version: 0.1.4
+Version: 0.1.5
 Summary: Django abstract classes to allow 'Set it and Forget it!' behavior for models.
 Home-page: http://github.com/wgbh/django-model-gatekeeper/
 Author: Bob Donahue
