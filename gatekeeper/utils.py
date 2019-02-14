@@ -136,40 +136,37 @@ def get_appropriate_object_from_model(object_set, is_queryset=False):
     """
     now = datetime.now(pytz.utc)
 
-    # anything that is not available to anyone is ignored
+    # Use the whole model by default.
+    # Otherwise if is_queryset is True, treat it as a queryset.
     if is_queryset:
-        qs = object_set.exclue(publish_status=-1)
+        qs = object_set.exclude(publish_status=-1)
     else:
         qs = object_set.objects.exclude(publish_status=-1) 
+
+    # anything that is not available to anyone is ignored
     qs = qs.exclude(live_as_of__gt=now)
-    qs1 = qs.exclude(live_as_of__isnull=True) # For some reason this does NOT WORK
-    qs1 = qs.order_by('-live_as_of', '-publish_status')
-    ok = []
-    for x in qs1:
-        if x.live_as_of is not None:
-            ok.append(x)
-    # If any are left - return the firs tone
-    if len(ok) > 0:
-        return ok[0]
     
-    # Send the most recently updated permanent on
-    qs2 = qs.exclude(publish_status=0)
+    # Send most-recent live_as_of
+    qs1 = qs.exclude(live_as_of__isnull=True) # For some reason this does NOT WORK
+    qs1 = qs.filter(publish_status=0).order_by('-live_as_of').first()
+    if qs1:
+        return qs1
+    
+    # Send the most recently updated permanent on    
     try:
-        qs2 = qs.order_by('-date_modified').first()
+        qs2 = qs.filter(publish_status=1).order_by('-date_modified').first()
     except:
-        qs2 = qs.first()
-    else:     
-        if qs2:
-            return qs2
+        qs2 = qs.filter(publish_status=1).first()
+    if qs2:
+        return qs2
         
     # Send the most-recent "default"
     try:
         qs3 = qs.filter(default_live=True).order_by('-date_modified').first()
     except:
         qs3 = qs.filter(default_live=True).first()
-    else:
-        if qs3:
-            return qs3
+    if qs3:
+        return qs3
 
     # Nothing is avaialble - this will likely result in a 404 page being returned.
     return None
