@@ -141,7 +141,7 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
     def get_list_display(self, request):
         """
         The default will be to add show_publish_status and is_live to the list_display.
-        One can turn this off by making a custom get_list_display.
+        One can turn this off by making a custom get_list_display. 
         """
         x = self.list_display
         if x is None:
