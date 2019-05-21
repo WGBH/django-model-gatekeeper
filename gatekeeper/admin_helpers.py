@@ -1,6 +1,7 @@
 
 BASIC_FIELDS  = ((('publish_status', 'show_publish_status', 'available_to_public'), 'live_as_of', ))
 SERIAL_FIELDS = ((('publish_status', 'show_publish_status', 'is_live'), 'live_as_of', 'default_live'))
+
 GATEKEEPER_ACTIONS = [
     'gatekeeper_set_to_default', 
     'gatekeeper_permanently_online', 
@@ -9,7 +10,7 @@ GATEKEEPER_ACTIONS = [
     'gatekeeper_take_offline', 
 ]
 
-def gatekeeper_add_to_readonly_fields():
+def gatekeeper_add_to_readonly_fields(serial=False):
     """
     This adds the gatekeeper fields to the readonly_fields list.
     
@@ -17,7 +18,12 @@ def gatekeeper_add_to_readonly_fields():
         def get_readonly_fields(self, obj=None):
             return self.readonly_fields + gatekeeper_add_to_readonly_fields()
     """
-    return ('is_live', 'show_publish_status')
+    f = ['show_publish_status']
+    if serial:
+        f += ['default_live', 'is_live']
+    else:
+        f.append('available_to_public')
+    return f
     
 def gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False):
     """
@@ -45,9 +51,9 @@ def gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False):
         
     if section:
         if collapse:
-            d = {'classes': ('collapse',), 'fields': fields, 'description': description }
+            d = {'classes': ('collapse',), 'fields': fields, }
         else:
-            d = {'fields': fields, 'description': description }   
+            d = {'fields': fields, }   
         s = ('Gatekeeper', d)
         return s
     return fields
@@ -57,7 +63,7 @@ def gatekeeper_add_to_list_display(serial=False):
     This adds fields to list_display for the Admin changelist page for the model.
     """
     if serial:
-        return 'show_publish_status', 'is_live', 'default_live']
+        return ['show_publish_status', 'is_live', 'default_live']
     return ['show_publish_status','available_to_public']
     
 def gatekeeper_add_to_actions():

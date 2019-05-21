@@ -37,7 +37,7 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
     """
     
     ### Custom methods
-    def gatekeeper_show_publish_status(self, obj):
+    def show_publish_status(self, obj):
         """
         This creates an HTML string showing a object's gatekeeper status in a user-friendly way.
         """
@@ -55,7 +55,7 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
                 else:
                     return mark_safe("<B>LIVE</B> <span style=\"color: #999;\">as of: %s</style>" % dstr)
         return "???"
-    gatekeeper_show_publish_status.short_description = 'Pub. Status'
+    show_publish_status.short_description = 'Pub. Status'
     
     ### Control functions
     # These five operations are added to the admin listing page 
