@@ -10,8 +10,10 @@ django_model_gatekeeper.egg-info/requires.txt
 django_model_gatekeeper.egg-info/top_level.txt
 gatekeeper/__init__.py
 gatekeeper/admin.py
+gatekeeper/admin_helpers.py
 gatekeeper/mixins.py
 gatekeeper/models.py
+gatekeeper/moldy_admin.py
 gatekeeper/utils.py
 gatekeeper/view_utils.py
 gatekeeper/tests/__init__.py
