@@ -1,29 +1,67 @@
 
 BASIC_FIELDS  = ((('publish_status', 'show_publish_status', 'available_to_public'), 'live_as_of', ))
 SERIAL_FIELDS = ((('publish_status', 'show_publish_status', 'is_live'), 'live_as_of', 'default_live'))
+GATEKEEPER_ACTIONS = [
+    'gatekeeper_set_to_default', 
+    'gatekeeper_permanently_online', 
+    'gatekeeper_take_online_now', 
+    'gatekeeper_conditionally_online', 
+    'gatekeeper_take_offline', 
+]
 
 def gatekeeper_add_to_readonly_fields():
-    return ('is_live', 'shoe_publish_status')
+    """
+    This adds the gatekeeper fields to the readonly_fields list.
     
-def gatekeeper_add_to_fieldsets(section=True, show_description=False, collapse=False, serial=False):
+    Usage (in your model admin):
+        def get_readonly_fields(self, obj=None):
+            return self.readonly_fields + gatekeeper_add_to_readonly_fields()
+    """
+    return ('is_live', 'show_publish_status')
+    
+def gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False):
+    """
+    Adds gatekeeper fields to your ModelAdmin fieldsets.
+    Options:
+        Section: you can add the fields either as it's own section or as part of a section.
+        Collapse: whether the section should be collapsable or not.
+        
+    How to use:
+        # section = False
+        fieldsets = (
+            (None, { 'fields': ( ('pk',), gatekeeper_add_to_fieldsets(section=False), ), }), 
+        )
+
+        # section = True
+        fieldsets = (
+            (None, { 'fields': ( ('pk',), ), }),
+            gatekeeper_add_to_fieldsets(section=True),
+        )
+    """
     if serial:
         fields = SERIAL_FIELDS
     else:
         fields = BASIC_FIELDS
         
-    description = None
-    if show_description:
-        description = 'This is the description for Package 1'
     if section:
-        return ('Package 1', {
-            'fields': fields,
-            #'collapse': collapse,
-            'description': description
-        })
+        if collapse:
+            d = {'classes': ('collapse',), 'fields': fields, 'description': description }
+        else:
+            d = {'fields': fields, 'description': description }   
+        s = ('Gatekeeper', d)
+        return s
     return fields
     
 def gatekeeper_add_to_list_display(serial=False):
+    """
+    This adds fields to list_display for the Admin changelist page for the model.
+    """
     if serial:
         return 'show_publish_status', 'is_live', 'default_live']
     return ['show_publish_status','available_to_public']
     
+def gatekeeper_add_to_actions():
+    """
+    This adds the methods for the Admin actions.
+    """
+    return GATEKEEPER_ACTIONS

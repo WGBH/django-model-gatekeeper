@@ -4,21 +4,6 @@ import pytz
 from datetime import datetime
 from .utils import get_appropriate_object_from_model
 
-BASIC_FIELDS  = ((('publish_status', 'show_publish_status', 'available_to_public'), 'live_as_of', ))
-SERIAL_FIELDS = ((('publish_status', 'show_publish_status', 'is_live'), 'live_as_of', 'default_live'))
-
-def reset_fieldsets(orig, new):
-    """
-    This is just to re-write the fieldsets parameters with the gatekeeper section.
-    For some reason doing it any other way throws an error...   Oh well.
-    """
-    fs = []
-    if orig:
-        for f in orig:
-            fs.append(f)
-            fs.append(new)
-    return fs
-    
 def is_in_the_future(dt):
     """
     Is this (UTC) date/time value in the future or not?
@@ -30,16 +15,29 @@ def is_in_the_future(dt):
 class GatekeeperGenericAdmin(admin.ModelAdmin):
     """
     This superclass incorporates the gatekeeper fields into the Django Admin.
-    It has a custom get_fieldsets (to update the model admin with the gatekeeper fields).
+
+    Because of the Python MRO, you can't put the typical ModelAdmin methods here, because
+    if you have >1 abstract baseclasses to your ModelAdmin, the Python MRO will stop at the
+    first instance of the method, e.g.:
+    
+        class Foo1(admin.ModelAdmin):
+            def get_readonly_fields(self, obj=None):
+                return self.readonly_fields + ('foo1_field')
+        class Foo2(admin.ModelAdmin):
+            def get_readonly_fields(self, obj=None):
+                return self.readonly_fields + ('foo2_field')
+        class MyModel(Foo1, Foo2):
+            pass
+    
+    will stop at Foo1, and never get to Foo2.
+    
+    To get around this, there are "helper methods" in admin_helpers.py, you'll still have
+    to create methods in your ModelAdmin classes using either GatekeeperGenericAdmin or
+    GatekeeperSerialAdmin but you can call these from there to get the desired behavior.
     """
-    actions = ['set_to_default', 'permanently_online', 'take_online_now', 'conditionally_online', 'take_offline', ]
-        
-    def get_actions(self, request):
-        actions = super(GatekeeperGenericAdmin, self).get_actions(request)
-        return actions
-        
+    
     ### Custom methods
-    def show_publish_status(self, obj):
+    def gatekeeper_show_publish_status(self, obj):
         """
         This creates an HTML string showing a object's gatekeeper status in a user-friendly way.
         """
@@ -57,51 +55,51 @@ class GatekeeperGenericAdmin(admin.ModelAdmin):
                 else:
                     return mark_safe("<B>LIVE</B> <span style=\"color: #999;\">as of: %s</style>" % dstr)
         return "???"
-    show_publish_status.short_description = 'Pub. Status'
+    gatekeeper_show_publish_status.short_description = 'Pub. Status'
     
     ### Control functions
     # These five operations are added to the admin listing page 
-    def set_to_default(self, request, queryset):
+    def gatekeeper_set_to_default(self, request, queryset):
         for item in queryset:
             item.publish_status = 0
             item.live_as_of = None
             item.save()
-    set_to_default.short_description = 'Revert to Preview/Pending status.'
+    gatekeeper_set_to_default.short_description = 'Revert to Preview/Pending status.'
     
-    def permanently_online(self, request, queryset):
+    def gatekeeper_permanently_online(self, request, queryset):
         for item in queryset:
             item.publish_status = 1
             item.save()
-    permanently_online.short_description = 'Take item PERMANTENTLY LIVE'
+    gatekeeper_permanently_online.short_description = 'Take item PERMANTENTLY LIVE'
     
-    def conditionally_online(self, request, queryset):
+    def gatekeeper_conditionally_online(self, request, queryset):
         for item in queryset:
             item.publish_status = 0
             item.save() 
-    conditionally_online.short_description = 'CONDITIONALLY Online using live_as_of Date'
+    gatekeeper_conditionally_online.short_description = 'CONDITIONALLY Online using live_as_of Date'
            
-    def take_online_now(self, request, queryset):
+    def gatekeeper_take_online_now(self, request, queryset):
         for item in queryset:
             item.publish_status = 0
             item.live_as_of = datetime.now(pytz.utc)
             item.save()
-    take_online_now.short_description = 'Take Live as of Right Now'
+    gatekeeper_take_online_now.short_description = 'Take Live as of Right Now'
     
-    def take_offline(self, request, queryset):
+    def gatekeeper_take_offline(self, request, queryset):
         for item in queryset:
             item.publish_status = -1
             item.save() 
-    take_offline.short_description = 'Take item COMPLETELY OFFLINE'
+    gatekeeper_take_offline.short_description = 'Take item COMPLETELY OFFLINE'
     
-    ### Custom methods
-
-    class Meta:
-        abstract = True
+    #class Meta:
+    #    abstract = True
         
 class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
     """
     This superclass extends the previous one by adding the default_live field, and adds an is_live() method
     to allow the user to see which object in a model is determined to be the "live" page.
+    
+    Everything else is the same as above.
     """
         
     ### Custom methods
@@ -118,7 +116,7 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
         return False
         
     ### Custom methods
-    def show_publish_status(self, obj):
+    def gatekeeper_show_publish_status(self, obj):
         """
         This creates an HTML string showing a object's gatekeeper status in a user-friendly way.
         """
@@ -136,4 +134,4 @@ class GatekeeperSerialAdmin(GatekeeperGenericAdmin):
                 else:
                     return mark_safe("<B>LIVE</B> <span style=\"color: #999;\">as of: %s</style>" % dstr)
         return "???"
-    show_publish_status.short_description = 'Pub. Status'
+    gatekeeper_show_publish_status.short_description = 'Pub. Status'
