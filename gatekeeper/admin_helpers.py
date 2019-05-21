@@ -65,9 +65,4 @@ def gatekeeper_add_to_list_display(serial=False):
     if serial:
         return ['show_publish_status', 'is_live', 'default_live']
     return ['show_publish_status','available_to_public']
-    
-def gatekeeper_add_to_actions():
-    """
-    This adds the methods for the Admin actions.
-    """
-    return GATEKEEPER_ACTIONS
+

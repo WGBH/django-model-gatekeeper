@@ -224,11 +224,22 @@ where object_set is EITHER:
 
 # The Admin Interface
 
-Gatekeeper alters the default Admin for models that use it.
+Gatekeeper has several helper functions to customize the admin (it doesn't have the admin methods because there's no way to know if there are
+other ModelAdmins being used, and Python's MRO doesn't allow for chaning).   All of them are in the `gatekeeper.admin_helpers` file.
 
+## Readonly Fields
+
+Example code:
+
+```
+from gatekeeper.admin_helpers import gatekeeper_add_to_readonly_fields
+
+class MyModelAdmin(admin.ModelAdmin):
+    readonly_fields = ['my_field_1', 'my_field_2'] + gatekeeper_add_to_readonly_fields()    
+```
 ## List Display
 
-For the basic gatekeeper, two fields are added to the `list_display` (they'll appear after anything set in the ModelAdmin):
+For the basic gatekeeper, two fields are usually added to the `list_display` (they'll appear after anything set in the ModelAdmin):
 
 1. A `show_publish_status` that takes the `live_as_of` and `publish_status` fields and creates a human-friendly string from them;
 2. A `available_to_public` model property that returns True/False to show "is this available to the public"?
@@ -238,9 +249,53 @@ For the "serial" gatekeeper, there are also two fields:
 1. `show_publish_status` as before
 2. `is_live` - returns True/False to show which item is the one that will appear on the live site.
 
+These can be added with the `gatekeeper_add_to_list_display` method, e.g.:
+
+```
+from gatekeeper.admin_helpers import gatekeeper_add_to_list_display
+
+class MyModelAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'title', ] + gatekeeper_add_to_list_display()
+```
+
 ## Fieldsets
 
-All Gatekeeper-related fields are displayed on the model Admin edit page in a fieldset called "Gatekeeper".
+There are two ways to include the gatekeeper fields using the `gatekeeper_add_to_fieldsets` method:
+
+### As a separate section
+
+There's a `section` attribute (default: True) that returns the entire section tuple with the gatekeeper fields.
+There's also a `collapse` attribute (default: False) that uses the Django Admun "collapse" class.
+
+```
+from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
+
+class MyModelAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (None, ...),
+        gatekeeper_add_to_fieldsets(section=True, collapse=False)
+    )
+```
+
+### Included as part of another section
+
+Or you can include them as part of another section; in this case you'd set  `section=False`
+```
+from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
+
+class MyModelAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (None, {
+            'fields': (
+                (some set of fields),
+                gatekeeper_add_to_fieldsets(section=False)
+            )
+        }),
+    )
+```
+
+And of course you can just do it all manually with the editable `live_as_of`, `publish_status` fields and the readonly
+`is_live` (serial), `show_publish_status` (generic) fields.
 
 ## Admin actions
 
@@ -251,6 +306,13 @@ For convenience in the listing page of the Admin, five Admin actions have been d
 3. "Take Live as of Right Now":  this sets `live_as_of` = "now", and `publish_status` = 0 --- the item will be live;
 4. "CONDITIONALLY online using `live_as_of` date": this sets `publish_status = 0` and keeps `live_as_of` to whatever it was before.   You'd use this if you wanted to change a PERMANENTLY LIVE or COMPLETELY OFFLINE setting;
 5. "Take item COMPLETELY OFFLINE": this sets `publish_status` = -1 --- the item disappears from the site entirely.
+
+There's a GATEKEEPER_ACTIONS variable in the admin_helpers.py file; you'll need to add them to the `actions`, e.g.:
+
+```
+    actions = [any actions you've also created] + GATEKEEPER_ACTIONS
+```
+
 
 # Testing
 
@@ -271,12 +333,4 @@ Are you sure you're not logged into the Admin?   If you are, you can still "see"
 Sometimes you have a model that has a FK relationship to another model, and you want both of them to be under gate-keeping.   If "parent" model A's gatekeeping should influence model B, you can set things to override model B based upon the settings for model A.
 
 For example, if you have models for Author and Book, you can set it up that if the Author is not live, then NONE of the Books are live either.   This is convenient for sites where you might want to take several pages live all at once.
-
-## "Standalone" items
-
-(To be added from the PBSMM test case)
-
-BUT sometimes you do NOT want the parent model to control its children.   Standalone models will NOT check their parents for permission.
-
-For example you MIGHT want to limit the Books shown for a specific Author EXCEPT for this ONE Book.    So you can set `treat_as_standalone` for that one Book, and depending on the `live_as_of` and `publish_status` settings it will be "live" or not, WITHOUT checking to see what the same values are for that Book's Author.
 
