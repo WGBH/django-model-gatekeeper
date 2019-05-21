@@ -13,7 +13,7 @@ setup(
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     license='MIT License, see LICENSE',
-    description="Django abstract classes to allow 'Set it and Forget it!' behavior for models.",
+    description="Django abstract classes to allow Set it and Forget it! behavior for models.",
     long_description=README,
     url='http://github.com/wgbh/django-model-gatekeeper/',
     author='Bob Donahue',
