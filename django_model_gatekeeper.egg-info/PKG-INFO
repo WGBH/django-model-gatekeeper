@@ -266,6 +266,8 @@ Description: # Gatekeeper
             list_display = ['pk', 'title', ] + gatekeeper_add_to_list_display()
         ```
         
+        for serial models you'll need to add `serial=True` to the call.
+        
         ## Fieldsets
         
         There are two ways to include the gatekeeper fields using the `gatekeeper_add_to_fieldsets` method:
@@ -275,13 +277,15 @@ Description: # Gatekeeper
         There's a `section` attribute (default: True) that returns the entire section tuple with the gatekeeper fields.
         There's also a `collapse` attribute (default: False) that uses the Django Admun "collapse" class.
         
+        There's also a `serial` attribute (default: False) you'll need to add if the Model is serial.
+        
         ```
         from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
         
         class MyModelAdmin(admin.ModelAdmin):
             fieldsets = (
                 (None, ...),
-                gatekeeper_add_to_fieldsets(section=True, collapse=False)
+                gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False)
             )
         ```
         
@@ -296,7 +300,7 @@ Description: # Gatekeeper
                 (None, {
                     'fields': (
                         (some set of fields),
-                        gatekeeper_add_to_fieldsets(section=False)
+                        gatekeeper_add_to_fieldsets(section=False, serial=False)
                     )
                 }),
             )
