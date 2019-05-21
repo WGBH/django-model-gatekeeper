@@ -1,8 +1,8 @@
 import os
 from setuptools import find_packages, setup
 
-with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
-    README = readme.read()
+#with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
+#    README = readme.read()
 
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     license='MIT License, see LICENSE',
     description="Django abstract classes to allow Set it and Forget it! behavior for models.",
-    long_description=README,
+    #long_description=README,
     url='http://github.com/wgbh/django-model-gatekeeper/',
     author='Bob Donahue',
     author_email='bob_donahue@wgbh.org',
