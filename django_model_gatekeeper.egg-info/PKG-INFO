@@ -6,24 +6,38 @@ Home-page: http://github.com/wgbh/django-model-gatekeeper/
 Author: Bob Donahue
 Author-email: bob_donahue@wgbh.org
 License: MIT License, see LICENSE
-Description: # Gatekeeper
+Description: ==========
+        Gatekeeper
+        ==========
         
-        Gatekeeper is a simple Django app that enables "Set it and Forget it!" publishing behavior for models.
+        Gatekeeper allows for "Set it and forget it!" behavior for your models.
         
+        There are two basic configurations:
         
+        1. You have a model where some number of instances of the model should be "live".   A good example of this would be an Article model, where you've written some articles that are "live", some that might've been taken down, some that are still "in progress", and others that are ready to "go live", but have a "go live" date that's in the future.
         
-        ## Quick start
+        2. You have a model where ONE instance should be "live" depending on the underlying metadata of the model.   A good example of this would be a Homepage models:  you have different renditions of the home page that you want to go live at different date/times, but only one should be live at any given time.
+        
+        Happily, we can accommodate both!
+        
+        Other features:
+        
+        1. If you're logged into the Django Admin, you can still "see" pages that aren't live (so you can easily QA things that are in progress).
+        
+        -----------
+        Quick start
+        -----------
         
         1. Add "gatekeeper" to your INSTALLED_APPS setting like this::
         
-            ```
             INSTALLED_APPS = [
                 ...
                 'gatekeeper',
             ]
-            ```
         
-        # Gatekeeping Models
+        ------------------
+        Gatekeeping Models
+        ------------------
         
         The main use for gatekeeping is where you have a model with many instances, but you only want some to be "live" on the site.
         
@@ -57,7 +71,8 @@ Description: # Gatekeeper
         
         You set the `publish_status` and `live_as_of` values through the Admin.
         
-        ## View Code
+        View Code
+        =========
         
         Setting up gatekeeping for models is easy!  Using the Article model as an example, here is the corresponding view code for a listing and a detail view.
         
@@ -99,7 +114,9 @@ Description: # Gatekeeper
         
         So there are two helper functions to apply the gatekeeping rules to any queryset you generate.
         
-        ### `view_gatekeeper`
+        `view_gatekeeper`
+        -----------------
+        
         
         This takes a queryset, applies the rules and returns a filtered queryset.
         
@@ -115,7 +132,8 @@ Description: # Gatekeeper
         
         I've found that I almost NEVER need that.  Typically for constructed lists of object you want to only see what IS live, so in almost every case where I've used `view_gatekeeper`, I've set `is_auth = False`.   You can still "see" all the non-live objects through their detail page when you're logged into the Admin. 
         
-        ### `object_gatekeeper`
+        `object_gatekeeper`
+        -------------------
         
         This takes a single object instance and returns True or False depending on whether it "passes" the gate.
         
@@ -129,7 +147,9 @@ Description: # Gatekeeper
         
         Generally, you don't need this method since the model property `available_to_public` already exists.   The one case where I've needed it was when I had a list come from an outside source where there was an overlap with objects in one of my models.   I wanted to show all the external object, and construct links to the object that overlapped but ONLY if they were live.
         
-        # Gatekeeping Model Instances Serially
+        ------------------------------------
+        Gatekeeping Model Instances Serially
+        ------------------------------------
         
         In some situations, you only want a single instance of model to be "live" on the site at a time.   You can use the Gatekeeper to do this.   
         
@@ -161,9 +181,11 @@ Description: # Gatekeeper
            
         ```
         
-        As before, the`GatekeeperSerialAbstractModel` creates the `live_as_of` and `publish_status` fields.   It also creates a `default_live` field.   
+        As before, the`GatekeeperSerialAbstractModel` creates the `live_as_of` and `publish_status` fields.   It also creates a `default_live` field.  
         
-        ## View Code 
+        View Code
+        =========
+        
         
         The View code becomes:
         
@@ -177,7 +199,9 @@ Description: # Gatekeeper
             context_object_name = 'homepage'
         ```
         
-        ## Setting up `urls.py`
+        Setting up `urls.py`
+        ====================
+        
         
         In the `urls.py` there's a slight twist.  You'll want two entries.
         
@@ -191,7 +215,8 @@ Description: # Gatekeeper
         )
         ```
         
-        ## How it works
+        How it Works
+        ============
         
         What's happening behind the scenes:
         
@@ -217,7 +242,10 @@ Description: # Gatekeeper
         
         Note Rule #4 --- this is where the `default_live` field comes into play.   You can define a model instance with `default_live` = True.  This item will be return if no other instance passes the rules.  Basically it's can be a generic "fall back" for the model so that the public page ALWAYS returns something.   Handy!
         
-        ##  `utils.py` - helper functions
+        
+        `utils.py` - helper functions
+        =============================
+        
         
         In case you need it, there's a helper function, `get_appropriate_object_from_model` that will return the "live" instance of any serial gatekeeper model:
         
@@ -230,12 +258,16 @@ Description: # Gatekeeper
         1. a Model that has subclassed `GatekeeperSerialAbstractModel` (and `is_queryset=False`), OR;
         2. a query FROM a Model that has subclassed `GatekeeperSerialAbstractModel` (where you send `is_queryset=True`).
         
-        # The Admin Interface
+        -------------------
+        The Admin Interface
+        -------------------
+        
         
         Gatekeeper has several helper functions to customize the admin (it doesn't have the admin methods because there's no way to know if there are
         other ModelAdmins being used, and Python's MRO doesn't allow for chaning).   All of them are in the `gatekeeper.admin_helpers` file.
         
-        ## Readonly Fields
+        Readonly Fields
+        ===============
         
         Example code:
         
@@ -245,7 +277,10 @@ Description: # Gatekeeper
         class MyModelAdmin(admin.ModelAdmin):
             readonly_fields = ['my_field_1', 'my_field_2'] + gatekeeper_add_to_readonly_fields()    
         ```
-        ## List Display
+        
+        List Display
+        ============
+        
         
         For the basic gatekeeper, two fields are usually added to the `list_display` (they'll appear after anything set in the ModelAdmin):
         
@@ -268,11 +303,16 @@ Description: # Gatekeeper
         
         for serial models you'll need to add `serial=True` to the call.
         
-        ## Fieldsets
+        
+        Fieldsets
+        =========
         
         There are two ways to include the gatekeeper fields using the `gatekeeper_add_to_fieldsets` method:
         
-        ### As a separate section
+        
+        As a separate section
+        ---------------------
+        
         
         There's a `section` attribute (default: True) that returns the entire section tuple with the gatekeeper fields.
         There's also a `collapse` attribute (default: False) that uses the Django Admun "collapse" class.
@@ -289,7 +329,8 @@ Description: # Gatekeeper
             )
         ```
         
-        ### Included as part of another section
+        Included as part of a section
+        -----------------------------
         
         Or you can include them as part of another section; in this case you'd set  `section=False`
         ```
@@ -309,7 +350,9 @@ Description: # Gatekeeper
         And of course you can just do it all manually with the editable `live_as_of`, `publish_status` fields and the readonly
         `is_live` (serial), `show_publish_status` (generic) fields.
         
-        ## Admin actions
+        Admin actions
+        =============
+        
         
         For convenience in the listing page of the Admin, five Admin actions have been defined:
         
@@ -325,26 +368,36 @@ Description: # Gatekeeper
             actions = [any actions you've also created] + GATEKEEPER_ACTIONS
         ```
         
+        -------
+        Testing
+        -------
         
-        # Testing
         
         There are unit tests for the `can_this_object_page_be_shown`, `can_this_object_page_be_shown_to_public`, and `get_appropriate_object_from_model` utility methods.   Run `python runtests.py`.
         
-        # Troubleshooting
+        ---------------
+        Troubleshooting
+        ---------------
         
-        ## _I have a page that's not live but I can still see it!_
+        _I have a page that's not live but I can still see it!_
+        ========================================================
         
         Are you sure you're not logged into the Admin?   If you are, you can still "see" pages that aren't live.
         
-        # Features still to be integrated
+        -------------------------------
+        Features still to be integrated
+        -------------------------------
         
-        ## Parental Gatekeeping
+        Parental Gatekeeping
+        ====================
         
         (To be added from the PBSMM test case)
         
         Sometimes you have a model that has a FK relationship to another model, and you want both of them to be under gate-keeping.   If "parent" model A's gatekeeping should influence model B, you can set things to override model B based upon the settings for model A.
         
         For example, if you have models for Author and Book, you can set it up that if the Author is not live, then NONE of the Books are live either.   This is convenient for sites where you might want to take several pages live all at once.
+        
+        
         
         
 Platform: UNKNOWN
