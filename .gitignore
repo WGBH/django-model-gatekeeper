@@ -6,3 +6,8 @@ __pycache__
 __pycache__/*
 
 *.pyc
+
+django_model_gatekeeper.egg-info
+build/
+django_pbsmmapi.egg-info/
+dist
