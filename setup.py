@@ -18,6 +18,7 @@ setup(
         "behavior for models.",
     ),
     long_description=README,
+    long_description_content_type='text/plain',
     url='http://github.com/wgbh/django-model-gatekeeper/',
     author='Bob Donahue',
     author_email='bob_donahue@wgbh.org',

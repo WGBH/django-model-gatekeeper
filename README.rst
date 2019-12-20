@@ -39,16 +39,16 @@ A good example is a generic "Article" model:
     * Other articles are still being worked on - you want to be able to preview them, but not take them live JUST yet;
     * Some articles might be pulled (and re-published later)
     * Some articles are ready to be published, but you want them to only go live at a later date.
-    
+
 Here, all you need to do is subclass the `GatekeeperAbstractModel` abstract class, e.g.:
 
-```
-from django.db import models
-from gatekeeper.models import GatekeeperAbstractModel
+.. code::
 
-class Article(GatekeeperAbstractModel):
-    ... (your custom fields go here)
-```
+   from django.db import models
+   from gatekeeper.models import GatekeeperAbstractModel
+
+   class Article(GatekeeperAbstractModel):
+       ... (your custom fields go here)
 
 The superclass creates two fields:
 
@@ -68,39 +68,41 @@ View Code
 
 Setting up gatekeeping for models is easy!  Using the Article model as an example, here is the corresponding view code for a listing and a detail view.
 
-```
-from django.views.generic import DetailView, ListView
-from .models import Article
-from gatekeeper.mixins import GatekeeperListMixin, GatekeeperDetailMixin
+.. code::
 
-class ArticleListView(GatekeeperListMixin, ListView):
-    model = Article
-    template_name = 'article/article_list.html'
-    context_object_name = 'articles'
-    
-        
-class ArticleDetailView(GatekeeperDetailMixin, DetailView):
-    model = Article
-    template_name = 'article/article_detail.html'
-    context_object_name = 'article'
-```
+    from django.views.generic import DetailView, ListView
+    from .models import Article
+    from gatekeeper.mixins import GatekeeperListMixin, GatekeeperDetailMixin
+
+
+    class ArticleListView(GatekeeperListMixin, ListView):
+        model = Article
+        template_name = 'article/article_list.html'
+        context_object_name = 'articles'
+
+    class ArticleDetailView(GatekeeperDetailMixin, DetailView):
+        model = Article
+        template_name = 'article/article_detail.html'
+        context_object_name = 'article'
 
 What's happening behind the scenes:
 
-1. In the ListView, the gatekeeper is filtering the model with the following rules:
+#. In the ListView, the gatekeeper is filtering the model with the following rules:
 
-    1. If the user is logged into the Admin and `publish_status` != -1, _include the model instance_
-    2. If there is no user, and the `publish_status` = 1, _include the model instance_
-    3. If there is no user, `publish_status` = 0, *and* the current date/time > `live_as_of`, _include the model instance_.
-    4. Return the filtered list of model instances.
-    
-2. In the DetailView, the gatekeeper follows the same rules, but will throw a 404 error, if the user is not logged into the Admin and the request object isn't "live" yet.
+    #. If the user is logged into the Admin and `publish_status` != -1, _include the model instance_
+    #. If there is no user, and the `publish_status` = 1, _include the model instance_
+    #. If there is no user, `publish_status` = 0, *and* the current date/time > `live_as_of`, _include the model instance_.
+    #. Return the filtered list of model instances.
+
+#. In the DetailView, the gatekeeper follows the same rules, but will throw a 404 error, if the user is not logged into the Admin and the request object isn't "live" yet.
 
 ## Using the Gatekeeper with querysets in your own code
 
 Say there's a section on your homepage that gives a list of the three most recent articles.  If you just create a queryset along the lines of:
 
-```most_recent_articles = Article.objects.order_by(-date_created)[:3]```
+.. code::
+
+    most_recent_articles = Article.objects.order_by(-date_created)[:3]
 
 it will include articles regardless of what their gatekeeping situation is.
 
@@ -112,13 +114,13 @@ So there are two helper functions to apply the gatekeeping rules to any queryset
 
 This takes a queryset, applies the rules and returns a filtered queryset.
 
-```
-from gatekeeper.view_utils import view_gatekeeper
-...
-recent_articles = Article.objects.order_by('-date_created')
-recent_articles = view_gatekeeper(recent_articles, is_auth)
-...
-```
+.. code::
+
+    from gatekeeper.view_utils import view_gatekeeper
+        ...
+        recent_articles = Article.objects.order_by('-date_created')
+        recent_articles = view_gatekeeper(recent_articles, is_auth)
+        ...
 
 The `is_auth` parameter allows you to filter based on whether the user making the request is logged in or not.  If they are logged in, then objects that aren't live but still available to the Admin will "pass" through the gatekeeper.   For this, you'd set `is_auth = self.request.user.is_authenticated`.   (About the only time I can see doing this is if you want to see how a particular non-live object will "play" in a generated content feature.)
 
@@ -129,13 +131,13 @@ I've found that I almost NEVER need that.  Typically for constructed lists of ob
 
 This takes a single object instance and returns True or False depending on whether it "passes" the gate.
 
-```
-from gatekeeper.view_utils import object_gatekeeper
-...
-my_article = Article.objects.first()
-am_i_avaiable = object_gatekeeper(my_article, is_auth)
-...
-```
+.. code::
+
+    from gatekeeper.view_utils import object_gatekeeper
+    ...
+    my_article = Article.objects.first()
+    am_i_avaiable = object_gatekeeper(my_article, is_auth)
+    ...
 
 Generally, you don't need this method since the model property `available_to_public` already exists.   The one case where I've needed it was when I had a list come from an outside source where there was an overlap with objects in one of my models.   I wanted to show all the external object, and construct links to the object that overlapped but ONLY if they were live.
 
@@ -149,29 +151,29 @@ A good example would be a Home page app.   You can queue up different renditions
 
 Here, there's only a small change to the model and view code:
 
-```
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
-from gatekeeper.models import GatekeeperSerialAbstractModel
+.. code::
 
-class Homepage(GatekeeperSerialAbstractModel):
-    title = models.CharField (
-        _('Title'),
-        max_length = 200,
-        null = False
-    )
+    from django.db import models
+    from django.utils.translation import ugettext_lazy as _
+    from gatekeeper.models import GatekeeperSerialAbstractModel
 
-    def get_absolute_url(self):
-        return reverse('homepage-detail', args=(self.pk))    
-        
-    def __str__(self):
-        return self.title
+    class Homepage(GatekeeperSerialAbstractModel):
+        title = models.CharField (
+            _('Title'),
+            max_length = 200,
+            null = False
+        )
 
-    class Meta:
-        verbose_name = 'Home Page'
-        verbose_name_plural = 'Home Pages'
-   
-```
+        def get_absolute_url(self):
+            return reverse('homepage-detail', args=(self.pk))    
+
+        def __str__(self):
+            return self.title
+
+        class Meta:
+            verbose_name = 'Home Page'
+            verbose_name_plural = 'Home Pages'
+
 
 As before, the`GatekeeperSerialAbstractModel` creates the `live_as_of` and `publish_status` fields.   It also creates a `default_live` field.  
 
@@ -181,15 +183,15 @@ View Code
 
 The View code becomes:
 
-```
-from django.views.generic import DetailView
-from gatekeeper.mixins import GatekeeperSerialMixin
+.. code::
 
-class HomepageDetailView(GatekeeperSerialMixin, DetailView):
-    model = Homepage
-    template_name = 'homepage/homepage_detail.html'
-    context_object_name = 'homepage'
-```
+    from django.views.generic import DetailView
+    from gatekeeper.mixins import GatekeeperSerialMixin
+
+    class HomepageDetailView(GatekeeperSerialMixin, DetailView):
+        model = Homepage
+        template_name = 'homepage/homepage_detail.html'
+        context_object_name = 'homepage'
 
 Setting up `urls.py`
 ====================
@@ -197,15 +199,15 @@ Setting up `urls.py`
 
 In the `urls.py` there's a slight twist.  You'll want two entries.
 
-```
-from django.urls import path
-from .views import HomepageDetailView
+.. code::
 
-urlpatterns = (
-    path('', HomepageDetailView.as_view(), name='homepage-live'),
-    path('homepage/<int:pk>/', HomepageDetailView.as_view(), name='homepage-detail'),
-)
-```
+    from django.urls import path
+    from .views import HomepageDetailView
+
+    urlpatterns = (
+        path('', HomepageDetailView.as_view(), name='homepage-live'),
+        path('homepage/<int:pk>/', HomepageDetailView.as_view(), name='homepage-detail'),
+    )
 
 How it Works
 ============
@@ -241,9 +243,9 @@ Note Rule #4 --- this is where the `default_live` field comes into play.   You c
 
 In case you need it, there's a helper function, `get_appropriate_object_from_model` that will return the "live" instance of any serial gatekeeper model:
 
-```
-get_appropriate_object_from_model(object_set, is_queryset=False)
-```
+.. code::
+
+    get_appropriate_object_from_model(object_set, is_queryset=False)
 
 where object_set is EITHER:
 
@@ -263,12 +265,12 @@ Readonly Fields
 
 Example code:
 
-```
-from gatekeeper.admin_helpers import gatekeeper_add_to_readonly_fields
+.. code::
 
-class MyModelAdmin(admin.ModelAdmin):
-    readonly_fields = ['my_field_1', 'my_field_2'] + gatekeeper_add_to_readonly_fields()    
-```
+    from gatekeeper.admin_helpers import gatekeeper_add_to_readonly_fields
+
+    class MyModelAdmin(admin.ModelAdmin):
+        readonly_fields = ['my_field_1', 'my_field_2'] + gatekeeper_add_to_readonly_fields()    
 
 List Display
 ============
@@ -286,14 +288,14 @@ For the "serial" gatekeeper, there are also two fields:
 
 These can be added with the `gatekeeper_add_to_list_display` method, e.g.:
 
-```
-from gatekeeper.admin_helpers import gatekeeper_add_to_list_display
+.. code::
 
-class MyModelAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'title', ] + gatekeeper_add_to_list_display()
-```
+    from gatekeeper.admin_helpers import gatekeeper_add_to_list_display
 
-for serial models you'll need to add `serial=True` to the call.
+        class MyModelAdmin(admin.ModelAdmin):
+            list_display = ['pk', 'title', ] + gatekeeper_add_to_list_display()
+
+    for serial models you'll need to add `serial=True` to the call.
 
 
 Fieldsets
@@ -311,33 +313,34 @@ There's also a `collapse` attribute (default: False) that uses the Django Admun 
 
 There's also a `serial` attribute (default: False) you'll need to add if the Model is serial.
 
-```
-from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
+.. code::
 
-class MyModelAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (None, ...),
-        gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False)
-    )
-```
+    from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
+
+    class MyModelAdmin(admin.ModelAdmin):
+        fieldsets = (
+            (None, ...),
+            gatekeeper_add_to_fieldsets(section=True, collapse=False, serial=False)
+        )
 
 Included as part of a section
 -----------------------------
 
 Or you can include them as part of another section; in this case you'd set  `section=False`
-```
-from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
 
-class MyModelAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (None, {
-            'fields': (
-                (some set of fields),
-                gatekeeper_add_to_fieldsets(section=False, serial=False)
-            )
-        }),
-    )
-```
+.. code::
+
+    from gatekeeper.admin_helpers import gatekeeper_add_to_fieldsets
+
+    class MyModelAdmin(admin.ModelAdmin):
+        fieldsets = (
+            (None, {
+                'fields': (
+                    (some set of fields),
+                    gatekeeper_add_to_fieldsets(section=False, serial=False)
+                )
+            }),
+        )
 
 And of course you can just do it all manually with the editable `live_as_of`, `publish_status` fields and the readonly
 `is_live` (serial), `show_publish_status` (generic) fields.
@@ -356,9 +359,9 @@ For convenience in the listing page of the Admin, five Admin actions have been d
 
 There's a GATEKEEPER_ACTIONS variable in the admin_helpers.py file; you'll need to add them to the `actions`, e.g.:
 
-```
+.. code::
+
     actions = [any actions you've also created] + GATEKEEPER_ACTIONS
-```
 
 -------
 Testing
@@ -388,6 +391,3 @@ Parental Gatekeeping
 Sometimes you have a model that has a FK relationship to another model, and you want both of them to be under gate-keeping.   If "parent" model A's gatekeeping should influence model B, you can set things to override model B based upon the settings for model A.
 
 For example, if you have models for Author and Book, you can set it up that if the Author is not live, then NONE of the Books are live either.   This is convenient for sites where you might want to take several pages live all at once.
-
-
-
